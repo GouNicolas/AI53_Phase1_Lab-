@@ -1,0 +1,51 @@
+stages:
+  validate:
+    cmd: uv run --locked python -m src.validate_data
+    deps:
+      - src/validate_data.py
+      - data/raw
+    outs:
+      - reports/data_quality.json
+
+  prepare:
+    cmd: uv run --locked python -m src.prepare
+    deps:
+      - src/prepare.py
+      - data/raw
+      - params.yaml
+      - reports/data_quality.json
+    outs:
+      - data/processed
+      - reports/data_summary.json
+
+  train:
+    cmd: uv run --locked python -m src.train
+    deps:
+      - src/train.py
+      - src/data.py
+      - src/model.py
+      - src/reproducibility.py
+      - src/provenance.py
+      - data/processed
+      - params.yaml
+    outs:
+      - models/model.pt
+      - reports/run_manifest.json
+      - reports/training_curves.png
+    metrics:
+      - reports/train_summary.json:
+          cache: false
+
+  evaluate:
+    cmd: uv run --locked python -m src.evaluate
+    deps:
+      - src/evaluate.py
+      - src/data.py
+      - src/provenance.py
+      - data/processed
+      - params.yaml
+    outs:
+      - reports/test_confusion_matrix.png
+    metrics:
+      - reports/test_metrics.json:
+          cache: false
