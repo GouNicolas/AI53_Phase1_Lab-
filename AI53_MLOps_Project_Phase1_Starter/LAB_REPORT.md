@@ -14,3 +14,6 @@ uv.lock is there to select which versions are used to run the code (versions in 
 random_state = 42 is a way to set the seed, but different computers will have slightly different results due to different hardware and software.
 
 ## Q4
+git remote stores code, dvc the model weights and the raw images are not transferred with git push, but with dvc push.
+
+## Q5
