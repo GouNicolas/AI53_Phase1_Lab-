@@ -11,3 +11,6 @@ uv.lock is there to select which versions are used to run the code (versions in 
 .venv/ is the python virtual environment used for storing the dependencies locally.
 
 ## Q3
+random_state = 42 is a way to set the seed, but different computers will have slightly different results due to different hardware and software.
+
+## Q4
