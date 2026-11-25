@@ -12,8 +12,9 @@ stages:
     deps:
       - src/prepare.py
       - data/raw
-      - params.yaml
       - reports/data_quality.json
+    params:
+      - data.image_size
     outs:
       - data/processed
       - reports/data_summary.json
@@ -27,7 +28,13 @@ stages:
       - src/reproducibility.py
       - src/provenance.py
       - data/processed
-      - params.yaml
+    params:
+      - data.image_size
+      - train
+      - augmentation
+      - compute.device
+      - tracking.uri
+      - tracking.experiment
     outs:
       - models/model.pt
       - reports/run_manifest.json
@@ -43,7 +50,13 @@ stages:
       - src/data.py
       - src/provenance.py
       - data/processed
-      - params.yaml
+    params:
+      - data.image_size
+      - evaluation.batch_size
+      - compute.device
+      - tracking.uri
+      - tracking.experiment
+      - selection.run_id
     outs:
       - reports/test_confusion_matrix.png
     metrics:

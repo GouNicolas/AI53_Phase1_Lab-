@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
+import platform
+import subprocess
 from pathlib import Path
+
+import torch
 
 
 def training_data_identity(
@@ -28,21 +33,61 @@ def training_data_identity(
     return digest.hexdigest()
 
 
+def _git_output(*args: str) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def _package_version(name: str) -> str:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return "not-installed"
+
+
 def build_run_manifest(params: dict, device: str, mlflow_run_id: str) -> dict:
-    """Build experiment provenance metadata.
+    """Build deterministic experiment provenance metadata."""
+    commit = _git_output("rev-parse", "HEAD")
+    git_status = _git_output("status", "--porcelain")
 
-    TODO: collect at least:
-      - Git commit SHA and whether the working tree is dirty;
-      - identity of the prepared training + validation manifests;
-      - Python, PyTorch, torchvision, DVC and MLflow versions;
-      - OS/platform and CUDA runtime (when available);
-      - compute device; random seed; image size; training parameters;
-      - MLflow Run ID.
-
-    Hints: subprocess, platform, importlib.metadata, torch,
-    training_data_identity().
-    """
-    raise NotImplementedError("Implement run provenance capture")
+    return {
+        "git": {
+            "commit": commit,
+            "dirty": None if git_status is None else bool(git_status),
+        },
+        "data": {
+            "training_data_identity": training_data_identity(),
+        },
+        "environment": {
+            "python": platform.python_version(),
+            "torch": torch.__version__,
+            "torchvision": _package_version("torchvision"),
+            "dvc": _package_version("dvc"),
+            "mlflow": _package_version("mlflow"),
+            "platform": platform.platform(),
+            "cuda_runtime": torch.version.cuda,
+        },
+        "execution": {
+            "device": device,
+            "random_state": int(params["train"]["random_state"]),
+            "mlflow_run_id": mlflow_run_id,
+        },
+        "configuration": {
+            "image_size": int(params["data"]["image_size"]),
+            "train": dict(params["train"]),
+            "augmentation": dict(params["augmentation"]),
+        },
+    }
 
 
 def write_run_manifest(params: dict, device: str, mlflow_run_id: str, path: Path) -> dict:
